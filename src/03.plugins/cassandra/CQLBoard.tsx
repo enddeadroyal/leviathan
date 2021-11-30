@@ -107,7 +107,7 @@ export function CQLBoard(props: any): JSX.Element {
                                     </Grid>
                                     <Grid container item xs={2} alignItems="center" direction="column">
                                         <FormControl fullWidth size="small" variant="standard">
-                                            <InputLabel id="keyspaces">KEYSAPCES</InputLabel>
+                                            <InputLabel id="keyspaces">KEYSPACES</InputLabel>
                                             <Select displayEmpty size="small" labelId="keyspaces" fullWidth onChange={onSpaceChange}>
                                                 {
                                                     spaces.map((elem, index) => <MenuItem value={elem} key={index}>
