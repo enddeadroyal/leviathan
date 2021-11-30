@@ -1,0 +1,30 @@
+[package]
+name = "leviathan"
+version = "0.1.0"
+description = "leviathan"
+authors = ["you"]
+license = ""
+repository = ""
+default-run = "leviathan"
+edition = "2018"
+build = "src/build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1.0.0-beta.4" }
+
+[dependencies]
+ssh2 = { version = "*" }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.0.0-beta.8", features = ["api-all"] }
+tokio = { version = "*", features = ["rt-multi-thread"] }
+cdrs-tokio = { version = "*" }
+cdrs-tokio-helpers-derive = { version = "*" }
+uuid = { version = "*" }
+chrono = { version = "*" }
+
+[features]
+default = [ "custom-protocol" ]
+custom-protocol = [ "tauri/custom-protocol" ]
