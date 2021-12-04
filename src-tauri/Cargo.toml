@@ -24,6 +24,8 @@ cdrs-tokio = { version = "*" }
 cdrs-tokio-helpers-derive = { version = "*" }
 uuid = { version = "*" }
 chrono = { version = "*" }
+log = { version ="*" }
+fern = { version = "*" }
 
 [features]
 default = [ "custom-protocol" ]
