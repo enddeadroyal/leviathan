@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router'
 import { BrowserRouter } from 'react-router-dom'
 import { createTheme, ThemeProvider } from '@mui/material'
-import { AppBar, Typography } from '@mui/material'
+import {AppBar, Typography} from '@mui/material'
 import { SnackbarProvider } from 'notistack'
 import { NaviBoard, NaviProvider } from './02.navi/NaviBoard'
 import { NAVI_DATA } from './02.navi/api'

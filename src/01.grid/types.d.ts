@@ -18,6 +18,7 @@ export interface FilterState {
 
 export interface SortedState {
     field: string,
+    type: string,
     order: 'asc' | 'desc',
 }
 

@@ -12,3 +12,5 @@ export const textFilter = (value: string, operator: string, compare: string) => 
             return false
     }
 }
+
+export const ellipsis: (value: string, size: number) => string = (value, size) => value.length <= size? value: value.substr(0, size) + "..."

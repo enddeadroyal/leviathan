@@ -1,6 +1,5 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::select;
-use tokio::task;
 use tokio::net::TcpStream;
 use crate::plugins::error::ConvertToPluginError;
 
@@ -19,40 +18,47 @@ struct Payload {
     content: Vec<u8>,
 }
 
-pub async fn poll(tunnel_wrapper: TunnelWrapper, mut rx: Receiver<TunnelState>) {
+pub async fn poll(wrapper: TunnelWrapper, mut rx: Receiver<TunnelState>) {
 
-    let listener = match TcpListener::bind(SocketAddrV4::new(Ipv4Addr::new(0,0,0,0), tunnel_wrapper.tunnel.local_port)).await {
+    let listener = match TcpListener::bind(SocketAddrV4::new(Ipv4Addr::new(0,0,0,0), wrapper.tunnel.local_port)).await {
         Ok(listener) => listener,
         Err(e) => {
-            tunnel_wrapper.sx.send(Err(e.convert())).await.unwrap();
+            wrapper.sx.send(Err(e.convert())).await.unwrap();
             return;
         },
     };
-    tunnel_wrapper.sx.send(Ok(TunnelState::RUNNING)).await.unwrap();
+    wrapper.sx.send(Ok(TunnelState::RUNNING)).await.unwrap();
+    log::info!("START CLIENT: {:?}", wrapper.tunnel);
 
     loop {
         select! {
             client = listener.accept() => {
                 let (stream, _) = match client {
-                    Err(_) => continue,
+                    Err(_) => break,
                     Ok(client) => client,
                 };
-                start_ssh(stream, &tunnel_wrapper.tunnel).await;
+                let tunnel = wrapper.tunnel.clone();
+                tokio::spawn(start_ssh(stream, tunnel));
             },
             message = rx.recv() => {
                 match message {
-                    None => continue,
+                    None => {
+                        // tokio::task::yield_now().await;
+                        continue;
+                    },
                     Some(state) => {
-                        tunnel_wrapper.sx.send(Ok(state)).await.unwrap();
+                        wrapper.sx.send(Ok(state)).await.unwrap();
                         return;
                     },
                 }
             },
         }
     }
+    wrapper.sx.send(Ok(TunnelState::STOP)).await.unwrap();
+    log::info!("STOP CLIENT: {:?}", wrapper.tunnel);
 }
 
-async fn start_ssh(stream: TcpStream, t: &Tunnel) {
+async fn start_ssh(stream: TcpStream, t: Tunnel) {
     let mut s= Session::new().unwrap();
     let addr = format!("{}:{}", t.ssh_host, t.ssh_port);
     let ssh_stream = TcpStream::connect(addr.as_str()).await.unwrap();
@@ -83,11 +89,12 @@ async fn start_ssh(stream: TcpStream, t: &Tunnel) {
     let ssh_stream = c.stream(0);
     let (sx, rx) = channel::<Payload>(1024);
     s.set_blocking(false);
-    task::spawn(poll_client(stream, s, c, rx));
-    task::spawn(poll_ssh(ssh_stream, sx));
+    let t_replica = t.clone();
+    tokio::spawn(poll_client(t, stream, s, c, rx));
+    tokio::spawn(poll_ssh(t_replica, ssh_stream, sx));
 }
 
-async fn poll_client(mut stream: TcpStream, session: Session, c: SSHChannel, mut rx: Receiver<Payload>) {
+async fn poll_client(tunnel: Tunnel, mut stream: TcpStream, session: Session, c: SSHChannel, mut rx: Receiver<Payload>) {
 
     loop {
 
@@ -106,7 +113,7 @@ async fn poll_client(mut stream: TcpStream, session: Session, c: SSHChannel, mut
             },
             payload = rx.recv() => {
                 let payload = match payload {
-                    None => continue,
+                    None => break,
                     Some(payload) => payload,
                 };
 
@@ -114,23 +121,34 @@ async fn poll_client(mut stream: TcpStream, session: Session, c: SSHChannel, mut
             },
         }
     }
+    
     session.disconnect(None, "close", None).unwrap();
+    stream.shutdown().await.unwrap();
+    log::info!("CLIENT CLOSE: {:?}!!!", tunnel);
 }
 
-async fn poll_ssh(mut stream: SSHStream, sx: Sender<Payload>) {
+async fn poll_ssh(tunnel: Tunnel, mut stream: SSHStream, sx: Sender<Payload>) {
 
     loop {
 
         let mut response = vec![0; 16 * 1024];
         let size = match stream.read(&mut response) {
-            Ok(size) if size == 0 => break,
+            Ok(size) if size == 0 => {
+                log::warn!("STREAM CLOSE!!!");
+                break
+            },
             Ok(size) => size,
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 tokio::task::yield_now().await;
                 continue;
             },
-            Err(_) => break,
+            Err(e) => {
+                log::error!("SSH INTERRUPED: {:?}!!!", e);
+                break
+            },
         };
-            sx.send(Payload{size, content: response}).await.unwrap();
+        sx.send(Payload{size, content: response}).await.unwrap();
     }
+    sx.closed().await;
+    log::info!("SSH CLOSE: {:?}!!!", tunnel);
 }

@@ -16,7 +16,7 @@ pub async fn tunnel_init() -> (Sender<TunnelControl>, TunnelsReceiver) {
 
     let (sx_src, rx_src) = channel::<TunnelControl>(1024);
     let (sx_dest, rx_dest) = channel::<TunnelResult<Vec<Tunnel>>>(1024);
-    task::spawn(run(sx_dest, rx_src));
+    tokio::spawn(run(sx_dest, rx_src));
     (sx_src, Arc::new(Mutex::new(rx_dest)))
 }
 

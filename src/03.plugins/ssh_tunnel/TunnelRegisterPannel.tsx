@@ -36,7 +36,6 @@ export const TunnelRegisterPannel = forwardRef(({onClose}: TunnelRegisterPannelP
     const fileRef = useRef<any>({})
 
     const onSubmit = handleSubmit((data) => {
-        console.info("data: ", data)
         onClose && onClose()
         reqRegisterTunnelInfo({...data, status: "stop", private_key: file} as TunnelInfo)
             .then(tunnels => {update && update(tunnels.map((elem, index) => ({...elem, id: index})))})

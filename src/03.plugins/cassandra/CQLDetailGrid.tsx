@@ -116,7 +116,10 @@ const GridToolbarLoadButton = (): JSX.Element => {
             detailCache.updateData && detailCache.updateData({loading: false, rows})
 
             enqueueSnackbar("GET DETAIL-DATA SUCCESS!!!", {variant: "success"})
-        }).catch(e => enqueueSnackbar(e.message, {variant: "error"}))
+        }).catch(e => {
+            detailCache.updateData && detailCache.updateData({loading: false, rows: []})
+            enqueueSnackbar(e.message, {variant: "error"})
+        })
     }, [cache, detailCache, enqueueSnackbar])
     return (
         <Button size="small" startIcon={<PlayCircleSharp />} onClick={handleLoad}>load</Button>

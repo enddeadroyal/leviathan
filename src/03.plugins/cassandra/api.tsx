@@ -1,4 +1,5 @@
-import { CQLDataGridProps, CQLField, CQLDataGridCache, CQLDetailGridCache } from './types'
+import { SetStateAction } from 'react'
+import { CQLDataGridProps, CQLField, CQLDataGridCache, CQLDetailGridCache, CQLBoardCache, CQLBoardState } from './types'
 
 export const createCQLDataGridPrpos = () => ({
     port: 0,
@@ -22,6 +23,16 @@ export const createCQLGridCahe = () => ({
 export const createCQLDetailCache = () => ({
     params: [],
 } as CQLDetailGridCache)
+
+export const createCQLBoardState = () => ({
+    cql: createCQLDataGridPrpos(),
+    display: false,
+} as CQLBoardState)
+
+export const createCQLBoardCache = () => ({
+    item: createCQLBoardState(),
+    update: (s: SetStateAction<CQLBoardState>) => {}
+} as CQLBoardCache)
 
 export const calColumnWidth = (field: CQLField) =>  {
     switch(field.vtype) {

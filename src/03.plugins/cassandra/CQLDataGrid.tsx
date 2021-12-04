@@ -75,13 +75,16 @@ export const CQLDataGrid = memo((props: CQLDataGridProps): JSX.Element => {
             setData({rows, loading: false})
 
             enqueueSnackbar("GET DATA SUCCESS!!!", {variant: "success"})
-        }).catch(e => enqueueSnackbar(e.message, {variant: "error"}))
+        }).catch(e => {
+            setData(s => ({...s, loading: false}))
+            enqueueSnackbar(e.message, {variant: "error"})
+        })
     }, [ filterItems, setData, enqueueSnackbar ])
 
     useEffect(() => {
 
         setColumns([])
-        setData({rows: [], loading: false})
+        setData({rows: [], loading: true})
 
         const req = { port, host, username, password, keyspace, table } as CQLRequest
         reqTableInfo(req).then((tableInfo: CQLTableInfo) => {
@@ -119,10 +122,14 @@ export const CQLDataGrid = memo((props: CQLDataGridProps): JSX.Element => {
                 })
             }
             setColumns(columns)
+            setData({rows: [], loading: false})
             setFilterItems([...patitionParams, ...clusteringParams])
 
             enqueueSnackbar("GET TABLE-INFO SUCCESS!!!", {variant: "success"})
-        }).catch(e => enqueueSnackbar(e.message, {variant: "error"}))
+        }).catch(e => {
+            setData(s => ({...s, loading: false}))
+            enqueueSnackbar(e.message, {variant: "error"})
+        })
     }, [port, host, username, password, keyspace, table, setColumns, setFilterItems, setData, enqueueSnackbar])
 
     return (

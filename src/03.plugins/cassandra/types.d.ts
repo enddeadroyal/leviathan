@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from 'react'
+import { Dispatch, MutableRefObject, SetStateAction } from 'react'
 
 export interface CQLField {
     name: string,
@@ -77,4 +77,24 @@ export interface CQLDetailGridCache {
     udt?: CQLUDTField,
     params: CQLParam[],
     updateData?: Dispatch<SetStateAction<CQLRowData>>,
+}
+
+export interface CQLTreeNode {
+    id: string,
+    node_id: string,
+    name: string,
+    parent?: CQLTreeNode,
+    children: CQLTreeNode[],
+    ref: MutableRefObject<any>,
+    value: any,
+}
+
+export interface CQLBoardState {
+    cql: CQLDataGridProps,
+    display: boolean,
+}
+
+export interface CQLBoardCache {
+    item: CQLBoardState,
+    update: Dispatch<SetStateAction<CQLBoardState>>,
 }

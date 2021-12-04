@@ -2,8 +2,10 @@ use std::collections::HashMap;
 use tokio::select;
 use tokio::task;
 use tokio::sync::mpsc::{Receiver, Sender, channel};
+use tokio::time;
 use super::server::poll;
 use super::PluginError;
+use std::time::Duration;
 
 use super::{Tunnel, TunnelControl, TunnelWrapper, TunnelOperator, TunnelState, TunnelResult};
 
@@ -13,11 +15,15 @@ pub async fn run(sx: Sender<TunnelResult<Vec<Tunnel>>>, mut rx: Receiver<TunnelC
     let mut tunnels = HashMap::<u16, TunnelWrapper>::new();
 
     loop {
+        let mut tick = time::interval(Duration::from_secs(60));
         select! {
             tc = rx.recv() => {
                 let tc = match tc {
                     Some(tc) => tc,
-                    None => continue,
+                    None => {
+                        tokio::task::yield_now().await;
+                        continue;
+                    },
                 };
 
                 let rs = match tc.operator {
@@ -29,6 +35,23 @@ pub async fn run(sx: Sender<TunnelResult<Vec<Tunnel>>>, mut rx: Receiver<TunnelC
                     TunnelOperator::EXIT => break,
                 };
                 sx.send(rs).await.unwrap();
+            },
+            _ = tick.tick() => {
+                state_check(& mut tunnels).await
+            }
+        }
+    }
+}
+
+async fn state_check(tunnels: &mut TunnelWrapperMap) {
+    for (_, wrapper) in tunnels.iter_mut() {
+        match wrapper.rx.try_lock() {
+            Err(_) => continue,
+            Ok(mut mutex) => {
+                match mutex.try_recv() {
+                    Err(_) => continue,
+                    _ => wrapper.tunnel.status = TunnelState::STOP,
+                }
             }
         }
     }
@@ -100,7 +123,9 @@ pub async fn start_tunnel(tunnel: Tunnel, tunnels: &mut TunnelWrapperMap) -> Tun
             let (sx, rx) = channel::<TunnelState>(1024);
             task::spawn(poll(wrapper_replic, rx));
 
+            log::info!("START RECEIVER WAIT: {:?}", tunnel);
             let rs = wrapper.rx.lock().await.recv().await.unwrap();
+            log::info!("START RECEIVER: {:?}", tunnel);
             match rs {
                 Err(e) => Err(e),
                 Ok(state) => {
@@ -125,7 +150,9 @@ pub async fn stop_tunnel(tunnel: Tunnel, tunnels: &mut TunnelWrapperMap) -> Tunn
         Some(wrapper) if wrapper.tunnel.status == TunnelState::RUNNING => {
 
             wrapper.sx_dest.as_mut().unwrap().send(TunnelState::STOP).await.unwrap();
+            log::info!("STOP RECEIVER WAIT: {:?}", tunnel);
             let rs = wrapper.rx.lock().await.recv().await.unwrap();
+            log::info!("STOP RECEIVER: {:?}", tunnel);
             match rs {
                 Err(e) => Err(e),
                 Ok(state) => {

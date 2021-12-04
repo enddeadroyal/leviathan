@@ -55,16 +55,17 @@ export const sortedDataSelector = createSelector(dataSelector, sortedItemsSelect
 
     let sortedData = data.map(elem => elem)
     for (let sortItem of sorted) {
+
         sortedData.sort((v1, v2) => {
             switch(sortItem.order) {
 
                 case 'asc':
                     if(!v1[sortItem.field]) return -1
-                    return v1[sortItem.field] - v2[sortItem.field]
+                    return v1[sortItem.field] > v2[sortItem.field]? 1 : -1
 
                 case 'desc':
                     if(!v2[sortItem.field]) return -1
-                    return v2[sortItem.field] - v1[sortItem.field]
+                    return v2[sortItem.field] > v1[sortItem.field]? 1: -1
 
                 default:
                     return 0

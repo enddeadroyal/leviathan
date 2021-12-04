@@ -184,10 +184,11 @@ const MasterDetailHead = forwardRef((_props: any, ref: ForwardedRef<any>): JSX.E
     }
 
     const handldSortClick = useCallback((column: GridColumn) => () => {
+        console.info("filters: ", sortedItems)
         const current = sortedItems.find(elem => elem.field === column.field)
-        if(current?.order === "asc")  update(s => ({...s, sortedState: [{field: column.field, order: "desc"}]}))
+        if(current?.order === "asc")  update(s => ({...s, sortedState: [{field: column.field, type: column.type, order: "desc"}]}))
         else if (current?.order === "desc") update(s => ({...s, sortedState: []}))
-        else update(s => ({...s, sortedState: [{field: column.field, order: "asc"}]}))
+        else update(s => ({...s, sortedState: [{field: column.field, type: column.type, order: "asc"}]}))
     }, [sortedItems, update])
 
     return (
