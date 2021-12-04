@@ -6,10 +6,13 @@
 use leviathan::event::ssh_tunnel::tunnel_init;
 use leviathan::event::bind_ssh_tunnel;
 use leviathan::event::bind_cql_event;
+use leviathan::init_log;
 use tokio;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 50)]
 async fn main() {
+
+  init_log().await;
 
   let (sx, rx) = tunnel_init().await;
   let sx_replic = sx.clone();
